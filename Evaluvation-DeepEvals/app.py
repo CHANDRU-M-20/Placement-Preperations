@@ -3,11 +3,9 @@
 # from deepeval.metrics import ContextualRelevancyMetric
 
 
-#FaithfulnessMetric
-# --------------------
-#INPUT
-#ACTUAL_OUTPUT
-#RETRIEVAL_CONTEXT
+
+#ContextualRelevancyMetric
+
 
 # 📄 Score Calculation Logic
 # This method calculates the ratio of "yes" verdicts to the total number of verdicts. If strict_mode=True and the score is below a given threshold, the final score is set to 0.
