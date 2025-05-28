@@ -1,6 +1,8 @@
-# from deepeval.metrics import FaithfulnessMetric
+from deepeval.metrics import FaithfulnessMetric
 # from deepeval.metrics import ContextualPrecisionMetric
-# from deepeval.metrics import ContextualRelevancyMetric
+from deepeval.metrics import ContextualRelevancyMetric
+from deepeval.metrics import HallucinationMetric
+from deepeval.metrics import hallucination
 
 
 
@@ -47,3 +49,15 @@
 # how this retriver is working wheather it has any generated based on the ranking manner or not!
 
 
+# 🧠 #HallucinationMetric
+# 📄 Score Calculation Logic
+# The HallucinationMetric checks whether the model’s actual_output is factually grounded in the given context. If the response contains information not present or contradicted by the context, it's flagged as a hallucination.
+
+
+# | ❌ **Possible Cause**                     | 📌 **Explanation**                                                                                      |
+# | ---------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+# | ❗ **Incorrect or invented facts**        | The model states something **not mentioned** or **contradicted** by the context.                        |
+# | 📖 **Overgeneralization or assumptions** | Model draws conclusions not explicitly supported by the context.                                        |
+# | ⚠️ **Outdated or mismatched context**    | The context is incomplete or doesn't align with the latest facts, confusing the LLM.                    |
+# | 📉 **Ambiguous or vague context**        | If the context is unclear or open to interpretation, the model might generate loosely grounded answers. |
+# | 🔎 **Too little context**                | Insufficient detail in context causes the model to "fill in the blanks" with fabricated facts.          |
