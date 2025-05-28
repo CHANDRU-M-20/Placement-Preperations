@@ -2,6 +2,7 @@ from deepeval.metrics import FaithfulnessMetric
 # from deepeval.metrics import ContextualPrecisionMetric
 from deepeval.metrics import ContextualRelevancyMetric
 from deepeval.metrics import HallucinationMetric
+from deepeval.metrics import hallucination
 
 
 
