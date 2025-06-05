@@ -1,11 +1,13 @@
 from deepeval.metrics import FaithfulnessMetric
-# from deepeval.metrics import ContextualPrecisionMetric
+from deepeval.metrics import ContextualPrecisionMetric
+from deepeval.metrics import ContextualRecallMetric
 from deepeval.metrics import ContextualRelevancyMetric
 from deepeval.metrics import HallucinationMetric
 from deepeval.metrics import hallucination
+from deepeval.metrics import AnswerRelevancyMetric
 
 
-
+#when it is wrong - what need to focus(What need to fix)
 #ContextualRelevancyMetric
 
 
@@ -61,3 +63,130 @@ from deepeval.metrics import hallucination
 # | ⚠️ **Outdated or mismatched context**    | The context is incomplete or doesn't align with the latest facts, confusing the LLM.                    |
 # | 📉 **Ambiguous or vague context**        | If the context is unclear or open to interpretation, the model might generate loosely grounded answers. |
 # | 🔎 **Too little context**                | Insufficient detail in context causes the model to "fill in the blanks" with fabricated facts.          |
+
+
+# Great question! Let's walk through this block of code with a **simple example** to make it clear. This logic calculates **weighted precision at K** — a way to score how relevant your retrieved contexts are, especially rewarding **earlier correct items**.
+
+# ---
+
+# ### ✅ Code Block Recap
+
+# ```python
+# for k, is_relevant in enumerate(node_verdicts, start=1):
+#     if is_relevant:
+#         relevant_nodes_count += 1
+#         precision_at_k = relevant_nodes_count / k
+#         sum_weighted_precision_at_k += precision_at_k
+# ```
+
+# ---
+
+# ## 🧠 Concept
+
+# This loop rewards **early correct answers** more than later ones.
+
+# ---
+
+# ## 📘 Example 1
+
+# Imagine this is the verdict list:
+
+# ```python
+# node_verdicts = [1, 0, 1, 1]  # Means: [yes, no, yes, yes]
+# ```
+
+# So, we are iterating through:
+
+# | k (position) | is\_relevant (1 or 0) | relevant\_nodes\_count | Precision\@k   | Sum of weighted |
+# | ------------ | --------------------- | ---------------------- | -------------- | --------------- |
+# | 1            | ✅ 1                   | 1                      | 1 / 1 = 1.00   | +1.00           |
+# | 2            | ❌ 0                   | 1                      | - (skipped)    |                 |
+# | 3            | ✅ 1                   | 2                      | 2 / 3 ≈ 0.6667 | +0.6667         |
+# | 4            | ✅ 1                   | 3                      | 3 / 4 = 0.75   | +0.75           |
+
+# Now total:
+
+# ```python
+# sum_weighted_precision_at_k = 1.00 + 0.6667 + 0.75 = 2.4167
+# relevant_nodes_count = 3
+# final_score = 2.4167 / 3 ≈ 0.8056
+# ```
+
+# ---
+
+# ## 📘 Example 2 (all relevant, perfectly ranked)
+
+# ```python
+# node_verdicts = [1, 1, 1, 1]  # all yes
+# ```
+
+# | k | is\_relevant | relevant\_nodes\_count | Precision\@k | Sum   |
+# | - | ------------ | ---------------------- | ------------ | ----- |
+# | 1 | ✅ 1          | 1                      | 1.00         | +1.00 |
+# | 2 | ✅ 1          | 2                      | 2 / 2 = 1.0  | +1.00 |
+# | 3 | ✅ 1          | 3                      | 3 / 3 = 1.0  | +1.00 |
+# | 4 | ✅ 1          | 4                      | 4 / 4 = 1.0  | +1.00 |
+
+# Total score = 4.0 / 4 = **1.0 (Perfect)**
+
+# ---
+
+# ## 📘 Example 3 (relevant but late)
+
+# ```python
+# node_verdicts = [0, 0, 1, 1]
+# ```
+
+# | k | is\_relevant | relevant\_nodes\_count | Precision\@k | Sum   |
+# | - | ------------ | ---------------------- | ------------ | ----- |
+# | 1 | ❌ 0          | 0                      | -            |       |
+# | 2 | ❌ 0          | 0                      | -            |       |
+# | 3 | ✅ 1          | 1                      | 1 / 3 ≈ 0.33 | +0.33 |
+# | 4 | ✅ 1          | 2                      | 2 / 4 = 0.5  | +0.5  |
+
+# Final score = (0.33 + 0.5) / 2 = **0.4167**
+
+# Notice how **late relevant answers hurt the score**.
+
+# ---
+
+# ## 🧠 Summary
+
+# | Scenario                      | Final Score (approx) |
+# | ----------------------------- | -------------------- |
+# | Relevant early (Example 1)    | 0.81                 |
+# | All relevant, ranked early    | 1.00 (Perfect)       |
+# | Relevant but late (Example 3) | 0.42 (Lower)         |
+
+# ---
+
+# If you'd like, I can also visualize this with a small chart or write a function to simulate this scoring. Want that?
+
+
+
+
+
+# | Metric           | What It Tells You                                                   | Focus Area in RAG Pipeline                                                           | Why It Matters                                                        | Common Fixes                                                                                                                            |
+# | ---------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+# | 🎯 **Precision** | Are retrieved chunks actually useful for generating the answer?     | 🔍 **Retriever Ranking & Filtering**<br>📄 **Context Chunk Quality**                 | High precision means most retrieved info is relevant and useful.      | - Improve chunking strategy (split meaningfully)<br>- Tune retriever (BM25, hybrid, dense)<br>- Rerank retrieved docs<br>- Filter noise |
+# | 📈 **Recall**    | Is the retrieved context covering all parts of the expected answer? | 🧠 **Retriever Coverage**<br>🔁 **Query Reformulation**<br>📚 **Index Completeness** | High recall means context contains all needed pieces to answer fully. | - Increase `top_k` retrieval<br>- Reformulate input queries<br>- Improve document indexing<br>- Add missing knowledge                   |
+
+
+
+# 🧠 Example Scenario
+# Suppose:
+
+# You retrieved 5 documents (nodes)
+
+# Only 3 were useful for the final answer → Precision = 3 / 5 = 0.6
+
+# Your expected output has 4 sentences
+
+# Only 2 sentences are supported by context → Recall = 2 / 4 = 0.5
+
+
+
+# | Metric    | Numerator                                 | Denominator                           | Score | Interpretation                                    |
+# | --------- | ----------------------------------------- | ------------------------------------- | ----- | ------------------------------------------------- |
+# | Precision | Relevant nodes: 3                         | Retrieved nodes: 5                    | 0.6   | 60% of retrieved nodes were actually useful       |
+# | Recall    | Supported sentences in expected output: 2 | Total sentences in expected output: 4 | 0.5   | Only half the answer was supported by the context |
